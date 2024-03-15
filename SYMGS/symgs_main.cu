@@ -5,6 +5,7 @@
 #include "symgs_cpu.h"
 #include "symgs_gpu.h"
 
+d
 
 int main(int argc, const char *argv[]) {
     // include your main function here
