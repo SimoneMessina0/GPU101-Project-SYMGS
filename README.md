@@ -1,7 +1,7 @@
 # GPU101-Project-SYMGS
 
 [![Politecnico di Milano](https://img.shields.io/badge/University-Politecnico%20di%20Milano-blue)](https://www.polimi.it/)
-[![Academic Year](https://img.shields.io/badge/Academic%20Year-2024%2F2025-green)](https://github.com/SimoneMessina0/GPU101-Project-SYMGS)
+[![Academic Year](https://img.shields.io/badge/Academic%20Year-2022%2F2023-green)](https://github.com/SimoneMessina0/GPU101-Project-SYMGS)
 [![CUDA](https://img.shields.io/badge/Language-CUDA-brightgreen)](https://github.com/SimoneMessina0/GPU101-Project-SYMGS)
 
 This repository contains the final project implementation for the **GPU 101** course at Politecnico di Milano. The project demonstrates advanced GPU programming concepts through the implementation of the Symmetric Gauss-Seidel (SYMGS) algorithm using CUDA.
