@@ -48,39 +48,6 @@ This two-phase approach maintains symmetry properties of the original matrix, wh
 - **Scalable Performance**: Efficient handling of large matrix systems
 - **Memory Bandwidth Optimization**: Maximized utilization of GPU memory hierarchy
 
-## 🛠️ Getting Started
-
-### Prerequisites
-- NVIDIA GPU with CUDA capability 3.0 or higher
-- CUDA Toolkit (version 8.0 or later recommended)
-- GCC compiler compatible with your CUDA version
-
-### Building the Project
-```bash
-# Clone the repository
-git clone https://github.com/SimoneMessina0/GPU101-Project-SYMGS.git
-cd GPU101-Project-SYMGS
-
-# Compile the project
-nvcc -o symgs *.cu -O3 -arch=sm_60
-```
-
-*Replace `sm_60` with the appropriate compute capability for your GPU.*
-
-## 💻 Usage
-
-### Basic Execution
-```bash
-./symgs <matrix_size> <num_iterations>
-```
-
-### Example
-```bash
-./symgs 1024 100
-```
-
-This runs the SYMGS solver on a 1024×1024 matrix for 100 iterations.
-
 ## 🛠️ Technologies Used
 
 - **Programming Language**: CUDA C/C++
