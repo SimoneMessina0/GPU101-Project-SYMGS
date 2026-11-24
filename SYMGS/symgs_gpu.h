@@ -23,77 +23,87 @@
 // CUDA kernels implemented for SYMGS algorithm
 // Symmetric Gauss Seidl Algorithm works 
 
-// Forward Sweep (working on j>i elements, where j is the column and i is the row)
-// tid indicading the row and the thread identifier
-// i indicating the column
-__global__ void fsweep(const int *row_ptr, const int *col_ind, const float *values, const int num_rows, float *x, float *y, int *done, float *matrixDiag, int *loop)
+// Forward sweep: rows from first to last.
+__global__ void fsweep(	const int*  __restrict__ row_ptr, 
+						const int*  __restrict__ col_ind,
+						const float* __restrict__ values,
+						const int num_rows,
+						const float*  __restrict__ x,
+						float *y,
+						volatile bool *done,
+						const float* __restrict__ matrixDiag,
+						int *loop,
+						const int pass)   // id of this launch, written to *loop if a row gives up
 {
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	if((tid < num_rows) && (done[tid] == 0)) //Execute only on the rows not computed until now
+	if(tid >= num_rows || done[tid]) return; //Execute only on the rows not computed until now
+	
+	float sum = x[tid];
+	// Computing until column=row_end or dependencies with non-computed column are found
+	for(int i = row_ptr[tid]; i < row_ptr[tid + 1]; i++)
 	{
-		float sum = x[tid];
-		const int row_start = row_ptr[tid]; 
-		const int row_end = row_ptr[tid+1];
-		bool process = true;
-		// Computing until column=row_end or dependencies with non-computed column are found
-		for(int i = row_start; i < row_end && process; i++)
+		const int c = col_ind[i];
+		float v;
+		if(c >= tid)
 		{
-			if(col_ind[i]>=tid)
-			{
-				sum -= values[i] * x[col_ind[i]];
-			}
-			else if(done[col_ind[i]] == 1)
-			{
-				sum -= values[i] * y[col_ind[i]];
-			}
-			else process = false;
+			v = x[c];
 		}
-			if(process) // we save the new computed value in y
-			{
-				sum += x[tid] * matrixDiag[tid];
-				y[tid] = sum / matrixDiag[tid];
-				done[tid]=1;
+		else
+		{
+			if (!done[c]) {
+				*loop = pass; // host compares with the last pass id, so no memset is needed
+				return;
 			}
-			else loop[0]=1; // if dependencies are found we do another loop cycle
+			__threadfence();
+			
+			v = __ldcg(&y[c]);
+		}
+		sum -= values[i] * v;
 	}
-	__syncthreads();
+	sum += x[tid] * matrixDiag[tid];
+	y[tid] = sum / matrixDiag[tid];
+	__threadfence();
+	done[tid] = true;
 }
 
-
-//B ackward Sweep (working on j<i elements, where j is the column and i is the row)
-// tid indicading the row and the thread identifier
-// i indicating the column
-__global__ void bsweep(const int *row_ptr, const int *col_ind, const float *values, const int num_rows, float *x, float *y, int *done, float *matrixDiag, int *loop)
+// Backward sweep: rows from last to first.
+__global__ void bsweep(const int*   __restrict__ row_ptr,
+                       const int*   __restrict__ col_ind,
+                       const float* __restrict__ values,
+                       const int num_rows,
+                       float* x,
+                       const float* __restrict__ y,
+                       volatile bool* done,
+                       const float* __restrict__ matrixDiag,
+                       int* loop,
+                       const int pass)
 {
 	const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	if((tid < num_rows) && (done[tid] == 1))
+	if (tid >= num_rows || !done[tid]) return;
+
+	float sum = y[tid];
+	for (int i = row_ptr[tid]; i < row_ptr[tid + 1]; i++)
 	{
-		float sum = y[tid];
-		const int row_start = row_ptr[tid];
-		const int row_end = row_ptr[tid+1];
-		bool process = true;
-		//Computing until column=row_end or dependencies with non-computed column are found
-		for(int i = row_start; (i < row_end) && process; i++)
+		const int c = col_ind[i];
+		float v;
+		if (c <= tid)
 		{
-			if(col_ind[i]<=tid)
-			{
-				sum -= values[i] * y[col_ind[i]];
-			}
-			else if(done[col_ind[i]] == 0)
-			{
-				sum -= values[i] * x[col_ind[i]];
-			}
-			else process = false;
+			v = y[c];                 
 		}
-			if(process) // we save the new computed value in x
-			{
-				sum += y[tid] * matrixDiag[tid];
-				x[tid] = sum / matrixDiag[tid];
-				done[tid]=0;
+		else
+		{
+			if (done[c]) {
+				*loop = pass;
+				return;
 			}
-			else loop[0]=1; // if dependencies are found we do another loop cycle
-		
+			__threadfence();        
+			v = __ldcg(&x[c]);       
+		}
+		sum -= values[i] * v;
 	}
-	__syncthreads();
+	sum += y[tid] * matrixDiag[tid];
+	x[tid] = sum / matrixDiag[tid];
+	__threadfence();                 
+	done[tid] = false;
 }
 
